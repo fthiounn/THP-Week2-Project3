@@ -1,6 +1,5 @@
 require 'dotenv'
 require 'twitter'
-require 'tweetstream'
 
 
 Dotenv.load('.env')
@@ -15,13 +14,19 @@ def perform
 	  config.access_token_secret = ENV["TWITTER_ACCESS_TOKEN_SECRET"]
 	end
 	
+	clientStream = Twitter::Streaming::Client.new do |config|
+	  config.consumer_key        = ENV["TWITTER_CONSUMER_KEY"]
+	  config.consumer_secret     = ENV["TWITTER_CONSUMER_SECRET"]
+	  config.access_token        = ENV["TWITTER_ACCESS_TOKEN"]
+	  config.access_token_secret = ENV["TWITTER_ACCESS_TOKEN_SECRET"]
+	end
 	#DECOMMENTER LES METHODES A EFFECTUER
 
 	#test_tweet(client)
 	#hello_journalists(client)
 	#like_bonjour(client)
 	#follow_bonjour(client)
-	stream
+	stream(clientStream, client)
 
 end
 def test_tweet (client)
@@ -41,26 +46,20 @@ def like_bonjour (client)
 		puts "The bot liked that tweet : #{tweet.text}"
 	end
 end
-def follow_bonjour(client)
-	client.search('#bonjour_monde').take(20).each do |tweet|
-		(tweet.user == client.user)? break :
+def follow_bonjour(client)# add a check if we already follow
+	client.search('#bonjour_monde').take(20).uniq.each do |tweet|
+		if (tweet.user != client.user)
 			client.follow(tweet.user)
-			puts "The bot followed #{tweet.user.id}"
+			puts "The bot followed @#{tweet.user.screen_name}"
+		end
 	end
 end
-def stream
-	TweetStream.configure do |config|
-	  config.consumer_key        = ENV["TWITTER_CONSUMER_KEY"]
-	  config.consumer_secret     = ENV["TWITTER_CONSUMER_SECRET"]
-	  config.access_token        = ENV["TWITTER_ACCESS_TOKEN"]
-	  config.access_token_secret = ENV["TWITTER_ACCESS_TOKEN_SECRET"]
+def stream (clientStream,client)
+	clientStream.filter(track: "#bonjour_monde") do |object|
+  		puts object.text if object.is_a?(Twitter::Tweet)
+  		client.follow(object.user) if object.is_a?(Twitter::Tweet)
+  		client.fav tweet if object.is_a?(Twitter::Tweet)
 	end
-	# Use 'follow' to follow a group of user ids (integers, not screen names)
-	TweetStream::Client.new.search('#bonjour_monde') do |tweet|
-		(tweet.user == client.user)? break :
-			client.follow(tweet.user)
-			puts "The bot followed from live #{tweet.user.id}"
-  	end
 end
 perform
 
