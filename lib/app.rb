@@ -7,19 +7,9 @@ LIST_JOURNALISTS = ["@jcunniet", "@Aziliz31","@ssoumier","@marionsouzeau","@gael
 
 def perform
 
-	client = Twitter::REST::Client.new do |config|
-	  config.consumer_key        = ENV["TWITTER_CONSUMER_KEY"]
-	  config.consumer_secret     = ENV["TWITTER_CONSUMER_SECRET"]
-	  config.access_token        = ENV["TWITTER_ACCESS_TOKEN"]
-	  config.access_token_secret = ENV["TWITTER_ACCESS_TOKEN_SECRET"]
-	end
+	client = login
 	
-	clientStream = Twitter::Streaming::Client.new do |config|
-	  config.consumer_key        = ENV["TWITTER_CONSUMER_KEY"]
-	  config.consumer_secret     = ENV["TWITTER_CONSUMER_SECRET"]
-	  config.access_token        = ENV["TWITTER_ACCESS_TOKEN"]
-	  config.access_token_secret = ENV["TWITTER_ACCESS_TOKEN_SECRET"]
-	end
+	clientStream = login_stream
 	#DECOMMENTER LES METHODES A EFFECTUER
 
 	#test_tweet(client)
@@ -28,6 +18,22 @@ def perform
 	#follow_bonjour(client)
 	stream(clientStream, client)
 
+end
+def login
+	return Twitter::REST::Client.new do |config|
+	  config.consumer_key        = ENV["TWITTER_CONSUMER_KEY"]
+	  config.consumer_secret     = ENV["TWITTER_CONSUMER_SECRET"]
+	  config.access_token        = ENV["TWITTER_ACCESS_TOKEN"]
+	  config.access_token_secret = ENV["TWITTER_ACCESS_TOKEN_SECRET"]
+	end
+end
+def login_stream
+	return Twitter::Streaming::Client.new do |config|
+	  config.consumer_key        = ENV["TWITTER_CONSUMER_KEY"]
+	  config.consumer_secret     = ENV["TWITTER_CONSUMER_SECRET"]
+	  config.access_token        = ENV["TWITTER_ACCESS_TOKEN"]
+	  config.access_token_secret = ENV["TWITTER_ACCESS_TOKEN_SECRET"]
+	end
 end
 def test_tweet (client)
 	# ligne qui permet de tweeter sur ton compte
@@ -56,29 +62,12 @@ def follow_bonjour(client)# add a check if we already follow
 end
 def stream (clientStream,client)
 	clientStream.filter(track: "#bonjour_monde") do |object|
-  		puts object.text if object.is_a?(Twitter::Tweet)
-  		client.follow(object.user) if object.is_a?(Twitter::Tweet)
-  		client.fav tweet if object.is_a?(Twitter::Tweet)
+		if object.is_a?(Twitter::Tweet) then
+			print "Nouveau Tweet de : @#{object.user.screen_name} : "
+	  		puts object.text 
+	  		client.follow(object.user) if  client.user != client.user
+	  		client.fav object 
+  		end
 	end
 end
 perform
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
